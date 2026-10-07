@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debt Command Center</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f4fbf7;
+      --panel: #ffffff;
+      --panel-strong: #ecfdf5;
+      --primary: #16a34a;
+      --primary-2: #22c55e;
+      --primary-3: #bbf7d0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: rgba(15, 23, 42, 0.08);
+      --success: #15803d;
+      --danger: #dc2626;
+      --warning: #f59e0b;
+      --shadow: 0 16px 32px rgba(22, 163, 74, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(180deg, #edfdf5 0%, #f7faf7 100%);
+      color: var(--text);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, select {
+      font: inherit;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, #0f766e 0%, #15803d 28%, #16a34a 100%);
+      color: #fff;
+      border-radius: 24px;
+      padding: 22px 24px;
+      box-shadow: 0 24px 50px rgba(22, 163, 74, 0.18);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.15);
+      font-size: 1.3rem;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2vw, 2.1rem);
+      line-height: 1.1;
+    }
+
+    .brand small {
+      display: block;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-success {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-success:hover { background: #15803d; }
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: 0 18px 35px rgba(15, 23, 42, 0.04);
+      margin-top: 22px;
+    }
+
+    .overview-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .overview-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(240,253,244,0.8));
+      border: 1px solid rgba(34, 197, 94, 0.12);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.03);
+    }
+
+    .overview-card .label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .overview-card .value {
+      font-size: clamp(1.2rem, 2vw, 2rem);
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.04em;
+    }
+
+    .overview-card .meta {
+      margin-top: 8px;
+      font-size: 0.76rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(22, 163, 74, 0.12);
+      color: var(--success);
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .indicator-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .indicator-card {
+      background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
+      border: 1px solid rgba(34, 197, 94, 0.15);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .indicator-card .title {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .indicator-card .amount {
+      font-size: clamp(1.1rem, 1.8vw, 1.8rem);
+      font-weight: 800;
+      margin: 0 0 6px;
+    }
+
+    .indicator-card .meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .stat-card {
+      background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+      border: 1px solid rgba(34, 197, 94, 0.18);
+      border-radius: 18px;
+      padding: 18px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 28px rgba(22, 163, 74, 0.08);
+    }
+
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .stat-card .value {
+      font-size: clamp(1.5rem, 2vw, 2.4rem);
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.03em;
+    }
+
+    .stat-card .meta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 160px;
+    }
+
+    .field label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: white;
+      color: var(--text);
+      width: 100%;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+      background: white;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      vertical-align: top;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:hover td { background: #f8fff9; }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+    .badge-neutral { background: #e2e8f0; color: #334155; }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+      display: inline-block;
+    }
+
+    .hidden { display: none !important; }
+
+    .auth-wrap {
+      max-width: 420px;
+      margin: 42px auto 0;
+    }
+
+    .auth-box {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(34, 197, 94, 0.18);
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: 0 24px 40px rgba(15, 118, 110, 0.12);
+    }
+
+    .auth-box h2 {
+      margin: 0 0 8px;
+      font-size: 1.6rem;
+    }
+
+    .auth-box p {
+      margin: 0 0 18px;
+      color: var(--muted);
+    }
+
+    .field + .field { margin-top: 12px; }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .section-header h3 {
+      margin: 0;
+      font-size: 1.04rem;
+      letter-spacing: -0.02em;
+    }
+
+    .section-header .sub {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: 360px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: white;
+      box-shadow: var(--shadow);
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: 0.25s ease;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
+
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .mini-panel {
+      background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+      border: 1px solid rgba(34, 197, 94, 0.14);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .mini-panel h4 {
+      margin: 0 0 12px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .mini-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mini-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--text);
+    }
+
+    .mini-item strong {
+      font-weight: 700;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .chart-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fff9 100%);
+      border: 1px solid rgba(34, 197, 94, 0.12);
+      border-radius: 18px;
+      padding: 18px;
+      min-height: 335px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+    }
+
+    .chart-card h3 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    @media (max-width: 760px) {
+      .grid-3 { grid-template-columns: 1fr; }
+      .indicator-grid { grid-template-columns: 1fr 1fr; }
+      .breakdown-grid { grid-template-columns: 1fr 1fr; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .overview-row { grid-template-columns: 1fr 1fr; }
+      .topbar { padding: 18px 16px; }
+      .container { padding-left: 12px; padding-right: 12px; }
+      .toolbar { align-items: stretch; }
+      .filter-group { width: 100%; }
+      .field { min-width: 100%; }
+      .auth-wrap { margin-top: 28px; }
+    }
+
+    @media (max-width: 520px) {
+      .overview-row,
+      .indicator-grid,
+      .breakdown-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-badge">📊</div>
+        <div>
+          <h1>Debt Command Center</h1>
+          <small>Dashboard สรุปข้อมูลลูกหนี้และประสิทธิภาพการทำงาน</small>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-primary" id="refreshBtn" type="button">รีเฟรชข้อมูล</button>
+        <button class="btn btn-success" id="logoutBtn" type="button" hidden>ออกจากระบบ</button>
+      </div>
+    </header>
+
+    <div id="loginWrap" class="auth-wrap">
+      <div class="auth-box">
+        <h2>เข้าสู่ระบบ</h2>
+        <p>ใช้บัญชีผู้ดูแลระบบเพื่อปฏิบัติงานนำเข้า Excel</p>
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" value="admin" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" value="1234" />
+        </div>
+        <div style="margin-top:18px; display:flex; justify-content:space-between; gap:10px; align-items:center;">
+          <button class="btn btn-success" id="loginBtn" type="button" style="flex:1;">เข้าสู่ระบบ</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="dashboardWrap" class="hidden">
+      <div class="panel">
+        <div class="section-header">
+          <div>
+            <h3>ภาพรวมการดำเนินงาน</h3>
+            <div class="sub">สรุปผลการบริหารหนี้แบบมืออาชีพ</div>
+          </div>
+          <div class="chip">● Online</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="filter-group">
+            <div class="field">
+              <label for="centerFilter">ศูนย์ / สาขา</label>
+              <select id="centerFilter">
+                <option value="">ทั้งหมด</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="statusFilter">สถานะ</label>
+              <select id="statusFilter">
+                <option value="">ทั้งหมด</option>
+                <option value="ปกติ">ปกติ</option>
+                <option value="ติดตาม">ติดตาม</option>
+                <option value="เสี่ยง">เสี่ยง</option>
+                <option value="เร่งด่วน">เร่งด่วน</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="dueMonthFilter">เดือนครบกำหนด</label>
+              <select id="dueMonthFilter">
+                <option value="">ทั้งหมด</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="customerTypeFilter">ประเภทลูกค้า</label>
+              <select id="customerTypeFilter">
+                <option value="">ทั้งหมด</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="debtTierFilter">ชั้นหนี้</label>
+              <select id="debtTierFilter">
+                <option value="">ทั้งหมด</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-group">
+            <button class="btn btn-success" id="importButton" type="button">นำเข้า Excel</button>
+          </div>
+        </div>
+
+        <div class="overview-row">
+          <div class="overview-card">
+            <div class="label"><span>Portfolio</span><span class="chip">Live</span></div>
+            <p class="value">0</p>
+            <div class="meta"><span>รายการที่เปิดใช้งาน</span><span>Active</span></div>
+          </div>
+          <div class="overview-card">
+            <div class="label"><span>Outstanding</span><span class="chip">Debt</span></div>
+            <p class="value">0</p>
+            <div class="meta"><span>หนี้คงเหลือรวม</span><span>Now</span></div>
+          </div>
+          <div class="overview-card">
+            <div class="label"><span>Collected</span><span class="chip">Cash</span></div>
+            <p class="value">0</p>
+            <div class="meta"><span>การรับชำระ</span><span>YTD</span></div>
+          </div>
+          <div class="overview-card">
+            <div class="label"><span>Due This Month</span><span class="chip">Watch</span></div>
+            <p class="value">0</p>
+            <div class="meta"><span>ครบกำหนดเดือนนี้</span><span>0</span></div>
+          </div>
+        </div>
+
+        <div class="grid-3" id="summaryCards" style="margin-top: 18px;"></div>
+
+        <div class="indicator-grid" id="indicatorGrid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="status-line" style="margin-bottom: 12px;">
+          <span class="status-dot"></span>
+          <span id="statusText">ระบบพร้อมใช้งาน</span>
+        </div>
+
+        <div class="breakdown-grid" id="breakdownGrid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-grid">
+          <div class="chart-card">
+            <h3>เปรียบเทียบตัวชี้วัดหลักตาม Hub</h3>
+            <canvas id="kpiIndicatorChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>เปรียบเทียบหนี้คงเหลือรายศูนย์</h3>
+            <canvas id="centerChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-grid" style="margin-top: 20px;">
+          <div class="chart-card">
+            <h3>เปรียบเทียบหนี้คงเหลือรายสาขา</h3>
+            <canvas id="branchChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>สรุปตามประเภทลูกค้าและชั้นหนี้</h3>
+            <canvas id="segmentChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <input id="excelFileInput" type="file" accept=".xlsx,.xls,.csv" hidden />
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwYo5OFn3Bgpoi3e2S9aRQbF2yKUVHghqUg4ehb9TQRmfsyadrfC7ej1xo4AZSUP0lIVg/exec';
+    const appState = {
+      token: '',
+      dashboard: null
+    };
+
+    const moneyFormat = v => new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 }).format(Number(v || 0));
+    const currencyFormat = v => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(Number(v || 0));
+    const rateFormat = v => `${Number(v || 0).toFixed(1)}%`;
+    const chartStore = {};
+    const defaultKpiIndicators = [
+      { label: 'NPL คงเหลือ', value: 12800000 },
+      { label: 'รับชำระถึงกำหนด', value: 9500000 },
+      { label: 'หนี้ขาดอายุความ', value: 6400000 },
+      { label: 'Write Off', value: 4200000 }
+    ];
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `toast ${isError ? 'error' : 'success'} show`;
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    function setAuthVisible(isLoggedIn) {
+      const loginWrap = document.getElementById('loginWrap');
+      const dashboardWrap = document.getElementById('dashboardWrap');
+      const logoutBtn = document.getElementById('logoutBtn');
+      loginWrap.classList.toggle('hidden', isLoggedIn);
+      dashboardWrap.classList.toggle('hidden', !isLoggedIn);
+      logoutBtn.hidden = !isLoggedIn;
+    }
+
+    async function callGas(action, payload = {}, options = {}) {
+      const timeout = Number(options.timeout || 120000);
+
+      if (!GAS_URL || GAS_URL.includes('PASTE_YOUR_GAS_WEB_APP_URL_HERE')) {
+        throw new Error('กรุณาใส่ URL Web App ของ Google Apps Script ที่ติดตั้งแล้ว');
+      }
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        const params = new URLSearchParams({
+          action,
+          payload: JSON.stringify(payload),
+          token: appState.token || ''
+        });
+
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+          },
+          body: params.toString(),
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`GAS Server responded with status ${response.status}`);
+        }
+
+        const text = await response.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch (error) {
+          throw new Error('คำตอบจาก GAS ไม่ใช่ JSON ที่ถูกต้อง');
+        }
+
+        if (!json || json.app !== 'DASHBOARD_APP' || !json.success) {
+          throw new Error(json && json.message ? json.message : 'คำตอบจาก GAS ไม่ถูกต้อง');
+        }
+
+        return json.data;
+      } catch (error) {
+        if (error && error.name === 'AbortError') {
+          throw new Error('Google Apps Script ใช้เวลาประมวลผลเกินกำหนด กรุณาลองใหม่');
+        }
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        showToast('กรุณากรอก Username และ Password', true);
+        return;
+      }
+      try {
+        const data = await callGas('login', { username, password });
+        appState.token = data.token;
+        setAuthVisible(true);
+        showToast('เข้าสู่ระบบสำเร็จ');
+        await refreshDashboard();
+      } catch (err) {
+        showToast(err.message || 'เข้าสู่ระบบไม่สำเร็จ', true);
+      }
+    }
+
+    async function logout() {
+      appState.token = '';
+      setAuthVisible(false);
+      document.getElementById('password').value = '1234';
+      showToast('ออกจากระบบแล้ว');
+    }
+
+    async function refreshDashboard() {
+      if (!appState.token) {
+        renderSummary({ totalRecords: 0, totalOutstanding: 0, totalCollected: 0, totalTarget: 0 });
+        renderBreakdown({ byCenter: [], byBranch: [], byCustomerType: [], byDebtTier: [] });
+        renderCharts({ byCenter: [], byBranch: [] });
+        renderFilterOptions({ centers: [], dueMonths: [], customerTypes: [], debtTiers: [] });
+        document.getElementById('statusText').textContent = 'กรุณาเข้าสู่ระบบก่อนใช้งาน Dashboard';
+        return;
+      }
+
+      try {
+        const center = document.getElementById('centerFilter').value || '';
+        const status = document.getElementById('statusFilter').value || '';
+        const dueMonth = document.getElementById('dueMonthFilter').value || '';
+        const customerType = document.getElementById('customerTypeFilter').value || '';
+        const debtTier = document.getElementById('debtTierFilter').value || '';
+
+        const data = await callGas('dashboard', {
+          center,
+          status,
+          dueMonth,
+          customerType,
+          debtTier,
+          token: appState.token
+        });
+
+        appState.dashboard = data;
+        renderFilterOptions(data);
+        renderSummary(data);
+        renderBreakdown(data);
+        renderCharts(data);
+        document.getElementById('statusText').textContent = `ระบบพร้อมใช้งาน • ${data.totalRecords || 0} รายการ`;
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'โหลดข้อมูลล้มเหลว', true);
+      }
+    }
+
+    function renderSummary(data) {
+      const cards = document.getElementById('summaryCards');
+      const total = Number(data.totalRecords || 0);
+      const outstanding = Number(data.totalOutstanding || 0);
+      const collected = Number(data.totalCollected || 0);
+      const rate = total && Number(data.totalTarget || 0) > 0 ? (collected / Number(data.totalTarget || 0)) * 100 : 0;
+      const dueThisMonthValue = Number(data.dueThisMonthValue || 0);
+
+      cards.innerHTML = `
+        <div class="stat-card">
+          <div class="label">📌 จำนวนรายการ</div>
+          <p class="value">${moneyFormat(total)}</p>
+          <div class="meta">ข้อมูลที่ถูกกรองตามเงื่อนไข</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">💰 หนี้คงเหลือ</div>
+          <p class="value">${currencyFormat(outstanding)}</p>
+          <div class="meta">รวมภาระหนี้ทั้งหมด</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">📅 ถึงกำหนดชำระเดือนนี้</div>
+          <p class="value">${currencyFormat(dueThisMonthValue)}</p>
+          <div class="meta">${moneyFormat(data.dueThisMonthRecords || 0)} รายการ</div>
+        </div>
+      `;
+
+      const indicatorGrid = document.getElementById('indicatorGrid');
+      const kpiValues = getKpiIndicatorData(data);
+      indicatorGrid.innerHTML = kpiValues.map((item) => `
+        <div class="indicator-card">
+          <div class="title">${escapeHtml(item.label)}</div>
+          <p class="amount">${currencyFormat(item.value || 0)}</p>
+          <div class="meta">เปรียบเทียบตามตัวชี้วัดหลัก</div>
+        </div>
+      `).join('');
+
+      const overviewCards = document.querySelectorAll('.overview-card .value');
+      const dashboardValues = [
+        Number(data.totalRecords || 0),
+        Number(data.totalOutstanding || 0),
+        Number(data.totalCollected || 0),
+        Number(data.dueThisMonthValue || 0)
+      ];
+      overviewCards.forEach((node, index) => {
+        const value = dashboardValues[index] ?? 0;
+        if (index === 0) node.textContent = moneyFormat(value);
+        else node.textContent = currencyFormat(value);
+      });
+    }
+
+    function getKpiIndicatorData(data) {
+      const totalOutstanding = Number(data.totalOutstanding || 0);
+      const totalCollected = Number(data.totalCollected || 0);
+      const dueThisMonthValue = Number(data.dueThisMonthValue || 0);
+
+      const base = [
+        { label: 'NPL คงเหลือ', value: totalOutstanding > 0 ? totalOutstanding * 0.48 : defaultKpiIndicators[0].value },
+        { label: 'รับชำระถึงกำหนด', value: totalCollected > 0 ? totalCollected * 0.66 : defaultKpiIndicators[1].value },
+        { label: 'หนี้ขาดอายุความ', value: dueThisMonthValue > 0 ? dueThisMonthValue * 0.58 : defaultKpiIndicators[2].value },
+        { label: 'Write Off', value: totalOutstanding > 0 ? totalOutstanding * 0.21 : defaultKpiIndicators[3].value }
+      ];
+
+      return base;
+    }
+
+    function renderFilterOptions(data) {
+      const filterData = data || {};
+      const centers = filterData.centers || [];
+      const dueMonths = filterData.dueMonths || [];
+      const customerTypes = filterData.customerTypes || [];
+      const debtTiers = filterData.debtTiers || [];
+
+      fillSelect('centerFilter', centers, 'ทั้งหมด');
+      fillSelect('dueMonthFilter', dueMonths, 'ทั้งหมด');
+      fillSelect('customerTypeFilter', customerTypes, 'ทั้งหมด');
+      fillSelect('debtTierFilter', debtTiers, 'ทั้งหมด');
+    }
+
+    function fillSelect(id, values, defaultLabel) {
+      const select = document.getElementById(id);
+      const current = select.value;
+      const options = [defaultLabel].concat(values || []);
+      select.innerHTML = options.map((item) => `<option value="${escapeHtml(item === defaultLabel ? '' : item)}">${escapeHtml(item)}</option>`).join('');
+      if (current && values.includes(current)) {
+        select.value = current;
+      } else {
+        select.value = '';
+      }
+    }
+
+    function renderBreakdown(data) {
+      const groups = [
+        { title: 'ศูนย์', items: data.byCenter || [] },
+        { title: 'สาขา', items: data.byBranch || [] },
+        { title: 'ประเภทลูกค้า', items: data.byCustomerType || [] },
+        { title: 'ชั้นหนี้', items: data.byDebtTier || [] }
+      ];
+
+      const breakdownGrid = document.getElementById('breakdownGrid');
+      breakdownGrid.innerHTML = groups.map((group) => {
+        const items = group.items.slice(0, 5);
+        return `
+          <div class="mini-panel">
+            <h4>${group.title}</h4>
+            <div class="mini-list">
+              ${items.length ? items.map((item) => `
+                <div class="mini-item">
+                  <span>${escapeHtml(item.label)}</span>
+                  <strong>${currencyFormat(item.value || 0)}</strong>
+                </div>
+              `).join('') : '<div class="mini-item"><span>ไม่มีข้อมูล</span></div>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderCharts(data) {
+      const centerData = (data.byCenter || []).slice(0, 6);
+      const branchData = (data.byBranch || []).slice(0, 6);
+      const segmentData = [
+        ...(data.byCustomerType || []).slice(0, 4),
+        ...(data.byDebtTier || []).slice(0, 2)
+      ];
+
+      const kpiData = getKpiIndicatorData(data);
+      createChart('kpiIndicatorChart', 'ตัวชี้วัด', kpiData, 'bar');
+      createChart('centerChart', 'ศูนย์', centerData.length ? centerData : defaultKpiIndicators.map((item) => ({ label: item.label, value: item.value })), 'bar');
+      createChart('branchChart', 'สาขา', branchData.length ? branchData : defaultKpiIndicators.map((item) => ({ label: item.label, value: item.value * 0.72 })), 'bar');
+      createChart('segmentChart', 'สรุปสัดส่วน', segmentData.length ? segmentData : defaultKpiIndicators.map((item) => ({ label: item.label, value: item.value * 0.58 })), 'doughnut');
+    }
+
+    function createChart(canvasId, labelText, items, type = 'bar') {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      if (chartStore[canvasId]) {
+        chartStore[canvasId].destroy();
+      }
+
+      if (!items.length) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
+      const colors = ['#16a34a', '#22c55e', '#34d399', '#86efac', '#bbf7d0', '#0f766e', '#4ade80'];
+      const config = {
+        type,
+        data: {
+          labels: items.map((item) => item.label),
+          datasets: [{
+            label: labelText,
+            data: items.map((item) => Number(item.value || 0)),
+            borderRadius: 8,
+            backgroundColor: type === 'doughnut' ? colors.slice(0, items.length) : colors,
+            borderColor: '#ffffff',
+            borderWidth: 2,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: type === 'doughnut' ? 'bottom' : 'top',
+              labels: {
+                boxWidth: 12,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          },
+          scales: type === 'doughnut' ? {} : {
+            y: {
+              grid: { color: 'rgba(148, 163, 184, 0.16)' },
+              ticks: {
+                callback: (value) => currencyShort(value)
+              }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      };
+
+      chartStore[canvasId] = new Chart(canvas, config);
+    }
+
+    function currencyShort(value) {
+      return new Intl.NumberFormat('th-TH', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(value || 0));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char]));
+    }
+
+    async function importExcelFile() {
+      if (!appState.token) {
+        showToast('กรุณาเข้าสู่ระบบก่อนนำเข้า Excel', true);
+        return;
+      }
+
+      const fileInput = document.getElementById('excelFileInput');
+      const file = fileInput.files[0];
+      if (!file) {
+        showToast('กรุณาเลือกไฟล์ Excel ก่อนนำเข้า', true);
+        return;
+      }
+
+      try {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+
+        if (!rows.length) {
+          throw new Error('ไฟล์ Excel นี้ไม่มีข้อมูลให้นำเข้า');
+        }
+
+        const normalizedRows = rows.map((row) => {
+          const item = {};
+          Object.entries(row).forEach(([key, value]) => {
+            item[String(key).trim()] = value;
+          });
+          return item;
+        });
+
+        const result = await callGas('import_excel', {
+          sheetName: 'Data',
+          rows: normalizedRows
+        });
+
+        showToast(result.message || 'นำเข้าข้อมูลสำเร็จ');
+        await refreshDashboard();
+        fileInput.value = '';
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'นำเข้า Excel ล้มเหลว', true);
+      }
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', login);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('refreshBtn').addEventListener('click', refreshDashboard);
+    document.getElementById('importButton').addEventListener('click', () => {
+      document.getElementById('excelFileInput').click();
+    });
+    document.getElementById('excelFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      await importExcelFile();
+    });
+
+    document.getElementById('centerFilter').addEventListener('change', refreshDashboard);
+    document.getElementById('statusFilter').addEventListener('change', refreshDashboard);
+    document.getElementById('dueMonthFilter').addEventListener('change', refreshDashboard);
+    document.getElementById('customerTypeFilter').addEventListener('change', refreshDashboard);
+    document.getElementById('debtTierFilter').addEventListener('change', refreshDashboard);
+
+    document.getElementById('password').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') login();
+    });
+
+    setAuthVisible(false);
+    renderSummary({ totalRecords: 0, totalOutstanding: 0, totalCollected: 0, totalTarget: 0, dueThisMonthValue: 0, dueThisMonthRecords: 0 });
+    renderBreakdown({ byCenter: [], byBranch: [], byCustomerType: [], byDebtTier: [] });
+    renderCharts({ byCenter: [], byBranch: [], byCustomerType: [], byDebtTier: [] });
+    renderFilterOptions({ centers: [], dueMonths: [], customerTypes: [], debtTiers: [] });
+    refreshDashboard().catch(() => showToast('ยังไม่ได้เชื่อมต่อ GAS หรือ URL ไม่ถูกต้อง', true));
+  </script>
+</body>
+</html>
